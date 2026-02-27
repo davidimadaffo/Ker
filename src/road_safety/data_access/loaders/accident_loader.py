@@ -20,13 +20,24 @@ def safe_convert_int(value):
         return None
 
 def load_csv_data(file_path):
-    """Loads the CSV file into a DataFrame."""
+    """Loads the CSV file into a DataFrame.
+
+    Tries UTF-8 first, then falls back to common French/Windows encodings.
+    """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
-    
-    # Reading with ';' separator as it is the standard French format
-    df = pd.read_csv(file_path, sep=';', encoding='utf-8', low_memory=False)
-    return df
+
+    # ';' separator is common in French CSV exports (Excel).
+    for enc in ("utf-8", "cp1252", "latin-1"):
+        try:
+            return pd.read_csv(file_path, sep=";", encoding=enc, low_memory=False)
+        except UnicodeDecodeError:
+            continue
+
+    # If all attempts failed, raise a clear error.
+    raise UnicodeDecodeError(
+        "utf-8", b"", 0, 1, "Unable to decode CSV with utf-8/cp1252/latin-1"
+    )
 
 def prepare_data_for_insertion(df):
     """Cleans and transforms the DataFrame for SQL insertion."""

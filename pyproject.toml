@@ -13,6 +13,10 @@ priority = "primary"
 
 [tool.poetry.dependencies]
 python = ">=3.14,<3.15"
+
+[tool.poetry.scripts]
+road-safety = "road_safety.main:main"
+
 numpy = "2.4.1"
 pandas = "3.0.0"
 pandera = "0.28.1"
