@@ -1,7 +1,7 @@
 {
 	"name": "${localWorkspaceFolderBasename}",
 	"dockerComposeFile": "docker-compose-devcontainer.yml",
-	"service": "road_safety",
+	"service": "road-safety",
 	"workspaceFolder": "/app",
 	"customizations": {
 		"vscode": {

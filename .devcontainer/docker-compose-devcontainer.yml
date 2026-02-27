@@ -1,6 +1,6 @@
 services:
   road-safety:
-    container_name: road-safety
+  
 
     build:
       context: ..
@@ -13,7 +13,7 @@ services:
     environment:
       # Python application settings (matching src/road-safety/config/settings.py)
       DB_HOST: road-safety-postgres
-      DB_PORT: 5432
+      DB_PORT: 5888
       DB_NAME: accidents_db
       DB_USER: user
       DB_PASS: password
