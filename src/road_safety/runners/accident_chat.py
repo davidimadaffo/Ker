@@ -379,6 +379,11 @@ def run_chat() -> None:
             q_risk_score_commune(m.group(1).strip())
             continue
 
+        m = re.match(r"^gravity_values\s+(\d+)$", q, re.IGNORECASE)
+        if m:
+            q_gravity_values(int(m.group(1)))
+            continue
+
         m = re.match(
             r"^trend_days\s+(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})(?:\s+commune\s+(.+))?$",
             q,
