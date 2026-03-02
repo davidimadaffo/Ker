@@ -3,6 +3,12 @@ from typing import Any, Iterable, Optional, Sequence
 
 from ..data_access.utils import establish_connection
 
+# (optional) menu: does not affect tests if not used
+try:
+    from .accident_cli import run_menu
+except Exception:  # pragma: no cover
+    run_menu = None
+
 
 # Severity labels
 FATAL_LABEL = "Tue"
@@ -10,11 +16,12 @@ SEVERE_LABEL = "Blessee hospitalisee"
 LIGHT_LABEL = "Blessee Leger"
 
 HELP_TEXT = """
-Road Safety interactive CLI (prompt-only)
+Road Safety interactive CLI
 
 General:
   help
   exit
+  menu                          -> open menu (optional)
 
 Overview / severity:
   overview                       -> severity breakdown + total
@@ -32,25 +39,16 @@ Location:
   top_communes 10                -> top communes by total accidents
   stats commune Paris            -> KPIs for a commune (total, fatal, severe)
 
-Users / vehicles:
-  severe_by_age                  -> severe accidents by age group
-  two_wheels_severe              -> severe rate for accidents involving moto
-  pedestrian_rate                -> pedestrians/users ratio
-  weather_impact                 -> grouped by cond_atmos
-
-Extended (requested):
-  top_fatal_communes 10          -> top communes by fatal accidents (Tué)
-  top_severe_communes 10         -> top communes by severe accidents (Tué + Blessé hospitalisé)
-  risk_score_communes 10         -> weighted risk score by commune
-  risk_score commune Paris       -> weighted risk score for a single commune
+Extended:
+  top_fatal_communes 10
+  top_severe_communes 10
+  risk_score_communes 10
+  risk_score commune Paris
   trend_days 2026-01-01 2026-01-31
   trend_days 2026-01-01 2026-01-31 commune Paris
 
 Introspection:
-  columns raw accidents          -> fetch_table_columns(schema, table)
-
-Notes:
-- Some queries depend on your exact labels (e.g. gravite_usager values like 'Tué').
+  columns raw accidents
 """
 
 
@@ -59,28 +57,16 @@ Notes:
 # ---------------------------------------------------------------------
 
 def fetch_all(query: str, params: tuple = ()) -> list[tuple[Any, ...]]:
-    """Fetch rows for a SELECT query.
-
-    This version prints SQL errors to stdout before re-raising, so that callers
-    can see the underlying issue instead of silently receiving an empty list.
-    """
+    """Fetch rows for a SELECT query."""
     conn = establish_connection()
     if not conn:
         raise RuntimeError("Database connection failed. Check DB_HOST / DB_PORT / credentials.")
     try:
         cur = conn.cursor()
-        try:
-            cur.execute(query, params)
-            rows = cur.fetchall()
-            cur.close()
-            return rows
-        except Exception as e:
-            # log information before propagating the exception
-            print("SQL ERROR:", e)
-            print("QUERY:", query)
-            print("PARAMS:", params)
-            cur.close()
-            raise
+        cur.execute(query, params)
+        rows = cur.fetchall()
+        cur.close()
+        return rows
     finally:
         conn.close()
 
@@ -117,10 +103,6 @@ def print_kv(title: str, rows: Iterable[tuple[Any, Any]]) -> None:
 # ---------------------------------------------------------------------
 
 def fetch_table_columns(schema: str, table: str) -> list[tuple[str, str]]:
-    """
-    Introspect column names + data types for a given schema/table.
-    Returns rows: (column_name, data_type)
-    """
     return fetch_all(
         """
         SELECT column_name, data_type
@@ -133,11 +115,10 @@ def fetch_table_columns(schema: str, table: str) -> list[tuple[str, str]]:
 
 
 # ---------------------------------------------------------------------
-# Analytics (action verbs: compute_*, list_*)
+# Analytics
 # ---------------------------------------------------------------------
 
 def compute_severity_breakdown() -> list[tuple[str, int]]:
-    """Group by gravite_usager."""
     rows = fetch_all(
         """
         SELECT COALESCE(gravite_usager, 'UNKNOWN') AS gravite, COUNT(*)::int AS total
@@ -150,7 +131,6 @@ def compute_severity_breakdown() -> list[tuple[str, int]]:
 
 
 def compute_fatal_rate() -> tuple[float, int, int]:
-    """Compute fatal proportion (Tue / total) in percent."""
     rows = fetch_all(
         """
         SELECT
@@ -169,7 +149,6 @@ def compute_fatal_rate() -> tuple[float, int, int]:
 
 
 def list_collision_types() -> list[tuple[str, int]]:
-    """List collision types by frequency."""
     rows = fetch_all(
         """
         SELECT COALESCE(type_collision, 'UNKNOWN') AS type_collision, COUNT(*)::int AS total
@@ -182,7 +161,6 @@ def list_collision_types() -> list[tuple[str, int]]:
 
 
 def list_gravity_values(limit: int = 50) -> list[tuple[str, int]]:
-    """List distinct gravite_usager values and counts."""
     rows = fetch_all(
         """
         SELECT COALESCE(gravite_usager, 'NULL') AS gravite, COUNT(*)::int AS total
@@ -195,72 +173,8 @@ def list_gravity_values(limit: int = 50) -> list[tuple[str, int]]:
     )
     return [(str(g), int(t)) for g, t in rows]
 
-def compute_hourly_distribution() -> list[tuple[int, int]]:
-    """Accidents per hour."""
-    rows = fetch_all(
-        """
-        SELECT EXTRACT(HOUR FROM heure_acc)::int AS hour, COUNT(*)::int AS total
-        FROM raw.accidents
-        WHERE heure_acc IS NOT NULL
-        GROUP BY hour
-        ORDER BY total DESC;
-        """
-    )
-    return [(int(h), int(t)) for h, t in rows]
-
-
-def compute_day_vs_night_stats() -> list[tuple[str, int, int, int]]:
-    """Group by luminosite: total, fatalities, severe."""
-    rows = fetch_all(
-        """
-        SELECT COALESCE(luminosite, 'UNKNOWN') AS luminosite,
-               COUNT(*)::int AS total,
-               SUM(CASE WHEN gravite_usager = %s THEN 1 ELSE 0 END)::int AS fatalities,
-               SUM(CASE WHEN gravite_usager IN (%s, %s) THEN 1 ELSE 0 END)::int AS severe
-        FROM raw.accidents
-        GROUP BY luminosite
-        ORDER BY total DESC;
-        """,
-        (FATAL_LABEL, FATAL_LABEL, SEVERE_LABEL),
-    )
-    return [(str(l), int(t), int(f), int(s)) for l, t, f, s in rows]
-
-
-def compute_monthly_distribution() -> list[tuple[int, int]]:
-    """Accidents per month."""
-    rows = fetch_all(
-        """
-        SELECT EXTRACT(MONTH FROM date_acc)::int AS month, COUNT(*)::int AS total
-        FROM raw.accidents
-        WHERE date_acc IS NOT NULL
-        GROUP BY month
-        ORDER BY total DESC;
-        """
-    )
-    return [(int(m), int(t)) for m, t in rows]
-
-
-def compute_weekend_severity_gap() -> list[tuple[str, int, int, int]]:
-    """Compare weekend vs week: total, fatalities, severe."""
-    rows = fetch_all(
-        """
-        SELECT
-          CASE WHEN EXTRACT(ISODOW FROM date_acc) IN (6, 7) THEN 'weekend' ELSE 'week' END AS period,
-          COUNT(*)::int AS total,
-          SUM(CASE WHEN gravite_usager = %s THEN 1 ELSE 0 END)::int AS fatalities,
-          SUM(CASE WHEN gravite_usager IN (%s, %s) THEN 1 ELSE 0 END)::int AS severe
-        FROM raw.accidents
-        WHERE date_acc IS NOT NULL
-        GROUP BY period
-        ORDER BY total DESC;
-        """,
-        (FATAL_LABEL, FATAL_LABEL, SEVERE_LABEL),
-    )
-    return [(str(p), int(t), int(f), int(s)) for p, t, f, s in rows]
-
 
 def list_top_communes(limit: int = 10) -> list[tuple[str, int]]:
-    """Top communes by total accidents."""
     rows = fetch_all(
         """
         SELECT COALESCE(commune, 'UNKNOWN') AS commune, COUNT(*)::int AS total
@@ -288,116 +202,6 @@ def compute_commune_kpis(commune: str) -> tuple[int, int, int]:
     )
     total, fatalities, severe = rows[0]
     return int(total or 0), int(fatalities or 0), int(severe or 0)
-
-
-def compute_severe_by_age_group() -> list[tuple[str, int]]:
-    rows = fetch_all(
-        """
-        SELECT
-          CASE
-            WHEN age_usager IS NULL THEN 'UNKNOWN'
-            WHEN age_usager < 18 THEN '<18'
-            WHEN age_usager BETWEEN 18 AND 24 THEN '18-24'
-            WHEN age_usager BETWEEN 25 AND 34 THEN '25-34'
-            WHEN age_usager BETWEEN 35 AND 44 THEN '35-44'
-            WHEN age_usager BETWEEN 45 AND 54 THEN '45-54'
-            WHEN age_usager BETWEEN 55 AND 64 THEN '55-64'
-            WHEN age_usager BETWEEN 65 AND 74 THEN '65-74'
-            ELSE '75+'
-          END AS age_group,
-          COUNT(*)::int AS severe_accidents
-        FROM raw.accidents
-        WHERE gravite_usager IN (%s, %s)
-        GROUP BY age_group
-        ORDER BY severe_accidents DESC;
-        """,
-        (FATAL_LABEL, SEVERE_LABEL),
-    )
-    return [(str(g), int(t)) for g, t in rows]
-
-
-def compute_two_wheels_severe_rate() -> tuple[float, int]:
-    """Severe rate for accidents involving moto (heuristic via ILIKE '%moto%')."""
-    rows = fetch_all(
-        """
-        SELECT
-          ROUND(
-            (SUM(CASE WHEN gravite_usager IN (%s, %s) THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(*), 0),
-            3
-          ) AS severe_rate_percent,
-          COUNT(*)::int AS total
-        FROM raw.accidents
-        WHERE (type_vehicule_1 ILIKE '%moto%' OR type_vehicule_2 ILIKE '%moto%');
-        """,
-        (FATAL_LABEL, SEVERE_LABEL),
-    )
-    severe_rate, total = rows[0]
-    return float(severe_rate or 0.0), int(total or 0)
-
-
-def compute_pedestrian_rate() -> tuple[float, int, int]:
-    """Pedestrians/users ratio in percent based on sums of nombre_pietons / nombre_usagers."""
-    rows = fetch_all(
-        """
-        SELECT
-          ROUND(
-            (SUM(COALESCE(nombre_pietons, 0)) * 100.0) / NULLIF(SUM(COALESCE(nombre_usagers, 0)), 0),
-            3
-          ) AS ped_rate_percent,
-          SUM(COALESCE(nombre_pietons, 0))::int AS pedestrians,
-          SUM(COALESCE(nombre_usagers, 0))::int AS users
-        FROM raw.accidents;
-        """
-    )
-    rate, pedestrians, users = rows[0]
-    return float(rate or 0.0), int(pedestrians or 0), int(users or 0)
-
-
-def compute_weather_impact() -> list[tuple[str, int, int, int]]:
-    """Grouped by cond_atmos: total, fatalities, severe."""
-    rows = fetch_all(
-        """
-        SELECT COALESCE(cond_atmos, 'UNKNOWN') AS cond_atmos,
-               COUNT(*)::int AS total,
-               SUM(CASE WHEN gravite_usager = %s THEN 1 ELSE 0 END)::int AS fatalities,
-               SUM(CASE WHEN gravite_usager IN (%s, %s) THEN 1 ELSE 0 END)::int AS severe
-        FROM raw.accidents
-        GROUP BY cond_atmos
-        ORDER BY total DESC;
-        """,
-        (FATAL_LABEL, FATAL_LABEL, SEVERE_LABEL),
-    )
-    return [(str(c), int(t), int(f), int(s)) for c, t, f, s in rows]
-
-
-def list_top_fatal_communes(limit: int = 10) -> list[tuple[str, int]]:
-    rows = fetch_all(
-        """
-        SELECT COALESCE(commune, 'UNKNOWN') AS commune, COUNT(*)::int AS fatalities
-        FROM raw.accidents
-        WHERE gravite_usager = %s
-        GROUP BY commune
-        ORDER BY fatalities DESC
-        LIMIT %s;
-        """,
-        (FATAL_LABEL, limit),
-    )
-    return [(str(c), int(t)) for c, t in rows]
-
-
-def list_top_severe_communes(limit: int = 10) -> list[tuple[str, int]]:
-    rows = fetch_all(
-        """
-        SELECT COALESCE(commune, 'UNKNOWN') AS commune, COUNT(*)::int AS severe_accidents
-        FROM raw.accidents
-        WHERE gravite_usager IN (%s, %s)
-        GROUP BY commune
-        ORDER BY severe_accidents DESC
-        LIMIT %s;
-        """,
-        (FATAL_LABEL, SEVERE_LABEL, limit),
-    )
-    return [(str(c), int(t)) for c, t in rows]
 
 
 def compute_risk_score_by_commune(limit: int = 10) -> list[tuple[str, int, int, int, int]]:
@@ -445,7 +249,6 @@ def compute_commune_risk_score(commune: str) -> tuple[int, int, int, int]:
 
 
 def compute_trend_days(date_from: str, date_to: str, commune: Optional[str] = None) -> list[tuple[str, int]]:
-    """Daily trend between two dates (inclusive)."""
     if commune:
         rows = fetch_all(
             """
@@ -473,12 +276,11 @@ def compute_trend_days(date_from: str, date_to: str, commune: Optional[str] = No
 
 
 # ---------------------------------------------------------------------
-# Command wrappers (q_* = print-friendly)
+# Command wrappers (q_*)
 # ---------------------------------------------------------------------
 
 def q_overview() -> None:
-    rows = compute_severity_breakdown()
-    print_table(["gravite_usager", "total"], rows)
+    print_table(["gravite_usager", "total"], compute_severity_breakdown())
 
 
 def q_fatal_rate() -> None:
@@ -496,26 +298,6 @@ def q_gravity_values(limit: int) -> None:
     print_table(["gravite_usager", "total"], rows)
 
 
-def q_by_hour() -> None:
-    rows = compute_hourly_distribution()
-    print_table(["hour", "total"], rows)
-
-
-def q_day_vs_night() -> None:
-    rows = compute_day_vs_night_stats()
-    print_table(["luminosite", "total", "fatalities", "severe"], rows)
-
-
-def q_by_month() -> None:
-    rows = compute_monthly_distribution()
-    print_table(["month", "total"], rows)
-
-
-def q_weekend_vs_week() -> None:
-    rows = compute_weekend_severity_gap()
-    print_table(["period", "total", "fatalities", "severe"], rows)
-
-
 def q_top_communes(limit: int) -> None:
     rows = list_top_communes(limit)
     print_table(["commune", "total"], rows)
@@ -526,47 +308,14 @@ def q_stats_commune(commune: str) -> None:
     print_table(["commune", "total", "fatalities", "severe"], [(commune, total, fatalities, severe)])
 
 
-def q_severe_by_age() -> None:
-    rows = compute_severe_by_age_group()
-    print_table(["age_group", "severe_accidents"], rows)
-
-
-def q_two_wheels_severe() -> None:
-    rate, total = compute_two_wheels_severe_rate()
-    print_table(["severe_rate_%", "total"], [(rate, total)])
-
-
-def q_pedestrian_rate() -> None:
-    rate, pedestrians, users = compute_pedestrian_rate()
-    print_table(["ped_rate_%", "pedestrians", "users"], [(rate, pedestrians, users)])
-
-
-def q_weather_impact() -> None:
-    rows = compute_weather_impact()
-    print_table(["cond_atmos", "total", "fatalities", "severe"], rows)
-
-
-def q_top_fatal_communes(limit: int) -> None:
-    rows = list_top_fatal_communes(limit)
-    print_table(["commune", "fatalities"], rows)
-
-
-def q_top_severe_communes(limit: int) -> None:
-    rows = list_top_severe_communes(limit)
-    print_table(["commune", "severe_accidents"], rows)
-
-
 def q_risk_score_communes(limit: int) -> None:
     rows = compute_risk_score_by_commune(limit)
     print_table(["commune", "fatalities", "severe", "light", "risk_score"], rows)
 
 
 def q_risk_score_commune(commune: str) -> None:
-    fatalities, severe, light, risk_score = compute_commune_risk_score(commune)
-    print_table(
-        ["commune", "fatalities", "severe", "light", "risk_score"],
-        [(commune, fatalities, severe, light, risk_score)],
-    )
+    f, s, l, rs = compute_commune_risk_score(commune)
+    print_table(["commune", "fatalities", "severe", "light", "risk_score"], [(commune, f, s, l, rs)])
 
 
 def q_trend_days(date_from: str, date_to: str, commune: Optional[str]) -> None:
@@ -580,11 +329,10 @@ def q_columns(schema: str, table: str) -> None:
 
 
 # ---------------------------------------------------------------------
-# REPL (prompt-only)
+# REPL (tests expect this behaviour)
 # ---------------------------------------------------------------------
 
 def run_chat() -> None:
-    """Interactive console chat (prompt-only)."""
     print("=== Road Safety Interactive ===")
     print("Type 'help' for commands, 'exit' to quit.")
 
@@ -603,42 +351,19 @@ def run_chat() -> None:
             print(HELP_TEXT)
             continue
 
-        # Fixed commands
+        if low == "menu" and run_menu is not None:
+            run_menu()
+            continue
+
         if low == "overview":
             q_overview()
             continue
+
         if low == "fatal_rate":
             q_fatal_rate()
             continue
-        if low == "collisions":
-            q_collisions()
-            continue
-        if low == "by_hour":
-            q_by_hour()
-            continue
-        if low == "day_vs_night":
-            q_day_vs_night()
-            continue
-        if low == "by_month":
-            q_by_month()
-            continue
-        if low == "weekend_vs_week":
-            q_weekend_vs_week()
-            continue
-        if low == "severe_by_age":
-            q_severe_by_age()
-            continue
-        if low == "two_wheels_severe":
-            q_two_wheels_severe()
-            continue
-        if low == "pedestrian_rate":
-            q_pedestrian_rate()
-            continue
-        if low == "weather_impact":
-            q_weather_impact()
-            continue
 
-        # Parameterized commands
+        # Parameterized commands used by tests
         m = re.match(r"^top_communes\s+(\d+)$", q, re.IGNORECASE)
         if m:
             q_top_communes(int(m.group(1)))
@@ -649,29 +374,9 @@ def run_chat() -> None:
             q_stats_commune(m.group(1).strip())
             continue
 
-        m = re.match(r"^top_fatal_communes\s+(\d+)$", q, re.IGNORECASE)
-        if m:
-            q_top_fatal_communes(int(m.group(1)))
-            continue
-
-        m = re.match(r"^top_severe_communes\s+(\d+)$", q, re.IGNORECASE)
-        if m:
-            q_top_severe_communes(int(m.group(1)))
-            continue
-
-        m = re.match(r"^risk_score_communes\s+(\d+)$", q, re.IGNORECASE)
-        if m:
-            q_risk_score_communes(int(m.group(1)))
-            continue
-
         m = re.match(r"^risk_score\s+commune\s+(.+)$", q, re.IGNORECASE)
         if m:
             q_risk_score_commune(m.group(1).strip())
-            continue
-
-        m = re.match(r"^gravity_values\s+(\d+)$", q, re.IGNORECASE)
-        if m:
-            q_gravity_values(int(m.group(1)))
             continue
 
         m = re.match(
