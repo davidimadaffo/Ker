@@ -3,7 +3,7 @@ services:
     container_name: road-safety
   
     build:
-      context: .
+      context: ..
       dockerfile: .devcontainer/Dockerfile
       args:
         PROJECT_PATH: "/workspace"

@@ -59,16 +59,28 @@ Notes:
 # ---------------------------------------------------------------------
 
 def fetch_all(query: str, params: tuple = ()) -> list[tuple[Any, ...]]:
-    """Fetch rows for a SELECT query."""
+    """Fetch rows for a SELECT query.
+
+    This version prints SQL errors to stdout before re-raising, so that callers
+    can see the underlying issue instead of silently receiving an empty list.
+    """
     conn = establish_connection()
     if not conn:
         raise RuntimeError("Database connection failed. Check DB_HOST / DB_PORT / credentials.")
     try:
         cur = conn.cursor()
-        cur.execute(query, params)
-        rows = cur.fetchall()
-        cur.close()
-        return rows
+        try:
+            cur.execute(query, params)
+            rows = cur.fetchall()
+            cur.close()
+            return rows
+        except Exception as e:
+            # log information before propagating the exception
+            print("SQL ERROR:", e)
+            print("QUERY:", query)
+            print("PARAMS:", params)
+            cur.close()
+            raise
     finally:
         conn.close()
 

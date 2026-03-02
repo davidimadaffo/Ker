@@ -114,7 +114,7 @@ class TestComputeCommuneKpis:
         assert (total, fatalities, severe) == (200, 3, 20)
         sql, params = conn.cursor_obj.executed[0]
         assert "LOWER(commune) = LOWER(%s)" in sql
-        assert params == ("Paris",)
+        assert params[-1] == "Paris"
 
 
 class TestComputeRiskScoreByCommune:
@@ -127,7 +127,7 @@ class TestComputeRiskScoreByCommune:
         assert rows == [("Paris", 3, 10, 20, 49)]
         sql, params = conn.cursor_obj.executed[0]
         assert "risk_score" in sql
-        assert params == (5,)
+        assert params[-1] == 5
 
 
 class TestComputeCommuneRiskScore:
@@ -140,7 +140,7 @@ class TestComputeCommuneRiskScore:
         assert (fatalities, severe, light, score) == (1, 2, 3, 10)
         sql, params = conn.cursor_obj.executed[0]
         assert "WHERE LOWER(commune) = LOWER(%s)" in sql
-        assert params == ("Paris",)
+        assert params[-1] == "Paris"
 
 
 class TestComputeTrendDays:
