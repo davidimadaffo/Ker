@@ -1,16 +1,17 @@
+import os
 import re
 from typing import Any, Iterable, Optional, Sequence
 
 from ..data_access.utils import establish_connection
 
-# (optional) menu: does not affect tests if not used
+# Optional menu import (must not break tests)
 try:
     from .accident_cli import run_menu
 except Exception:  # pragma: no cover
     run_menu = None
 
 
-# Severity labels
+# Severity labels (must match your cleaned values)
 FATAL_LABEL = "Tue"
 SEVERE_LABEL = "Blessee hospitalisee"
 LIGHT_LABEL = "Blessee Leger"
@@ -27,19 +28,19 @@ Overview / severity:
   overview                       -> severity breakdown + total
   fatal_rate                     -> fatal proportion
   collisions                     -> most frequent collision types
-  gravity_values 20             -> show distinct gravite_usager values
+  gravity_values 20              -> show distinct gravite_usager values
 
 Time:
   by_hour                        -> accidents per hour
   day_vs_night                   -> stats grouped by luminosite
-  by_month                       -> accidents per month
+  by_month                       -> accidents per month (YYYY-MM)
   weekend_vs_week                -> compare weekend vs week (counts + fatal/severe)
 
 Location:
   top_communes 10                -> top communes by total accidents
   stats commune Paris            -> KPIs for a commune (total, fatal, severe)
 
-Extended:
+Extended (requires RS_ENABLE_EXTENDED=1):
   top_fatal_communes 10
   top_severe_communes 10
   risk_score_communes 10
@@ -55,7 +56,6 @@ Introspection:
 # ---------------------------------------------------------------------
 # Low-level helpers
 # ---------------------------------------------------------------------
-
 def fetch_all(query: str, params: tuple = ()) -> list[tuple[Any, ...]]:
     """Fetch rows for a SELECT query."""
     conn = establish_connection()
@@ -101,7 +101,6 @@ def print_kv(title: str, rows: Iterable[tuple[Any, Any]]) -> None:
 # ---------------------------------------------------------------------
 # Introspection
 # ---------------------------------------------------------------------
-
 def fetch_table_columns(schema: str, table: str) -> list[tuple[str, str]]:
     return fetch_all(
         """
@@ -117,7 +116,6 @@ def fetch_table_columns(schema: str, table: str) -> list[tuple[str, str]]:
 # ---------------------------------------------------------------------
 # Analytics
 # ---------------------------------------------------------------------
-
 def compute_severity_breakdown() -> list[tuple[str, int]]:
     rows = fetch_all(
         """
@@ -204,6 +202,99 @@ def compute_commune_kpis(commune: str) -> tuple[int, int, int]:
     return int(total or 0), int(fatalities or 0), int(severe or 0)
 
 
+def compute_hourly_distribution() -> list[tuple[int, int]]:
+    rows = fetch_all(
+        """
+        SELECT
+          EXTRACT(HOUR FROM NULLIF(heure_acc::text, '')::time)::int AS hour,
+          COUNT(*)::int AS total
+        FROM raw.accidents
+        WHERE NULLIF(heure_acc::text, '') IS NOT NULL
+        GROUP BY hour
+        ORDER BY total DESC;
+        """
+    )
+    return [(int(h), int(t)) for h, t in rows if h is not None]
+
+
+def compute_day_vs_night_stats() -> list[tuple[str, int, int, int]]:
+    rows = fetch_all(
+        """
+        SELECT COALESCE(luminosite, 'UNKNOWN') AS luminosite,
+               COUNT(*)::int AS total,
+               SUM(CASE WHEN gravite_usager = %s THEN 1 ELSE 0 END)::int AS fatalities,
+               SUM(CASE WHEN gravite_usager IN (%s, %s) THEN 1 ELSE 0 END)::int AS severe
+        FROM raw.accidents
+        GROUP BY luminosite
+        ORDER BY total DESC;
+        """,
+        (FATAL_LABEL, FATAL_LABEL, SEVERE_LABEL),
+    )
+    return [(str(l), int(t), int(f), int(s)) for l, t, f, s in rows]
+
+
+def compute_monthly_distribution() -> list[tuple[str, int]]:
+    rows = fetch_all(
+        """
+        SELECT TO_CHAR(date_acc, 'YYYY-MM') AS month, COUNT(*)::int AS total
+        FROM raw.accidents
+        WHERE date_acc IS NOT NULL
+        GROUP BY month
+        ORDER BY month;
+        """
+    )
+    return [(str(m), int(t)) for m, t in rows]
+
+
+def compute_weekend_severity_gap() -> list[tuple[str, int, int, int]]:
+    rows = fetch_all(
+        """
+        SELECT
+          CASE WHEN EXTRACT(DOW FROM date_acc) IN (0,6) THEN 'WEEKEND' ELSE 'WEEKDAY' END AS period,
+          COUNT(*)::int AS total,
+          SUM(CASE WHEN gravite_usager = %s THEN 1 ELSE 0 END)::int AS fatalities,
+          SUM(CASE WHEN gravite_usager IN (%s, %s) THEN 1 ELSE 0 END)::int AS severe
+        FROM raw.accidents
+        WHERE date_acc IS NOT NULL
+        GROUP BY period
+        ORDER BY period;
+        """,
+        (FATAL_LABEL, FATAL_LABEL, SEVERE_LABEL),
+    )
+    return [(str(p), int(t), int(f), int(s)) for p, t, f, s in rows]
+
+
+# ---------------- Extended analytics (flagged) ----------------
+def list_top_fatal_communes(limit: int = 10) -> list[tuple[str, int]]:
+    rows = fetch_all(
+        """
+        SELECT COALESCE(commune, 'UNKNOWN') AS commune, COUNT(*)::int AS fatalities
+        FROM raw.accidents
+        WHERE gravite_usager = %s
+        GROUP BY commune
+        ORDER BY fatalities DESC
+        LIMIT %s;
+        """,
+        (FATAL_LABEL, limit),
+    )
+    return [(str(c), int(t)) for c, t in rows]
+
+
+def list_top_severe_communes(limit: int = 10) -> list[tuple[str, int]]:
+    rows = fetch_all(
+        """
+        SELECT COALESCE(commune, 'UNKNOWN') AS commune, COUNT(*)::int AS severe_accidents
+        FROM raw.accidents
+        WHERE gravite_usager IN (%s, %s)
+        GROUP BY commune
+        ORDER BY severe_accidents DESC
+        LIMIT %s;
+        """,
+        (FATAL_LABEL, SEVERE_LABEL, limit),
+    )
+    return [(str(c), int(t)) for c, t in rows]
+
+
 def compute_risk_score_by_commune(limit: int = 10) -> list[tuple[str, int, int, int, int]]:
     rows = fetch_all(
         """
@@ -278,7 +369,6 @@ def compute_trend_days(date_from: str, date_to: str, commune: Optional[str] = No
 # ---------------------------------------------------------------------
 # Command wrappers (q_*)
 # ---------------------------------------------------------------------
-
 def q_overview() -> None:
     print_table(["gravite_usager", "total"], compute_severity_breakdown())
 
@@ -289,18 +379,31 @@ def q_fatal_rate() -> None:
 
 
 def q_collisions() -> None:
-    rows = list_collision_types()
-    print_table(["type_collision", "total"], rows)
+    print_table(["type_collision", "total"], list_collision_types())
 
 
 def q_gravity_values(limit: int) -> None:
-    rows = list_gravity_values(limit)
-    print_table(["gravite_usager", "total"], rows)
+    print_table(["gravite_usager", "total"], list_gravity_values(limit))
+
+
+def q_by_hour() -> None:
+    print_table(["hour", "total"], compute_hourly_distribution())
+
+
+def q_day_vs_night() -> None:
+    print_table(["luminosite", "total", "fatalities", "severe"], compute_day_vs_night_stats())
+
+
+def q_by_month() -> None:
+    print_table(["month", "total"], compute_monthly_distribution())
+
+
+def q_weekend_vs_week() -> None:
+    print_table(["period", "total", "fatalities", "severe"], compute_weekend_severity_gap())
 
 
 def q_top_communes(limit: int) -> None:
-    rows = list_top_communes(limit)
-    print_table(["commune", "total"], rows)
+    print_table(["commune", "total"], list_top_communes(limit))
 
 
 def q_stats_commune(commune: str) -> None:
@@ -308,9 +411,17 @@ def q_stats_commune(commune: str) -> None:
     print_table(["commune", "total", "fatalities", "severe"], [(commune, total, fatalities, severe)])
 
 
+# Extended wrappers
+def q_top_fatal_communes(limit: int) -> None:
+    print_table(["commune", "fatalities"], list_top_fatal_communes(limit))
+
+
+def q_top_severe_communes(limit: int) -> None:
+    print_table(["commune", "severe_accidents"], list_top_severe_communes(limit))
+
+
 def q_risk_score_communes(limit: int) -> None:
-    rows = compute_risk_score_by_commune(limit)
-    print_table(["commune", "fatalities", "severe", "light", "risk_score"], rows)
+    print_table(["commune", "fatalities", "severe", "light", "risk_score"], compute_risk_score_by_commune(limit))
 
 
 def q_risk_score_commune(commune: str) -> None:
@@ -319,19 +430,16 @@ def q_risk_score_commune(commune: str) -> None:
 
 
 def q_trend_days(date_from: str, date_to: str, commune: Optional[str]) -> None:
-    rows = compute_trend_days(date_from, date_to, commune)
-    print_table(["day", "total"], rows)
+    print_table(["day", "total"], compute_trend_days(date_from, date_to, commune))
 
 
 def q_columns(schema: str, table: str) -> None:
-    rows = fetch_table_columns(schema, table)
-    print_table(["column_name", "data_type"], rows)
+    print_table(["column_name", "data_type"], fetch_table_columns(schema, table))
 
 
 # ---------------------------------------------------------------------
 # REPL (tests expect this behaviour)
 # ---------------------------------------------------------------------
-
 def run_chat() -> None:
     print("=== Road Safety Interactive ===")
     print("Type 'help' for commands, 'exit' to quit.")
@@ -355,15 +463,33 @@ def run_chat() -> None:
             run_menu()
             continue
 
+        # Fixed commands
         if low == "overview":
             q_overview()
             continue
-
         if low == "fatal_rate":
             q_fatal_rate()
             continue
+        if low == "collisions":
+            q_collisions()
+            continue
+        if low == "by_hour":
+            q_by_hour()
+            continue
+        if low == "day_vs_night":
+            q_day_vs_night()
+            continue
+        if low == "by_month":
+            q_by_month()
+            continue
+        if low == "weekend_vs_week":
+            q_weekend_vs_week()
+            continue
 
-        # Parameterized commands used by tests
+        # Flag for extended commands (MUST exist for tests)
+        extended = os.getenv("RS_ENABLE_EXTENDED", "0") == "1"
+
+        # Parameterized basics
         m = re.match(r"^top_communes\s+(\d+)$", q, re.IGNORECASE)
         if m:
             q_top_communes(int(m.group(1)))
@@ -374,31 +500,48 @@ def run_chat() -> None:
             q_stats_commune(m.group(1).strip())
             continue
 
-        m = re.match(r"^risk_score\s+commune\s+(.+)$", q, re.IGNORECASE)
-        if m:
-            q_risk_score_commune(m.group(1).strip())
-            continue
-
         m = re.match(r"^gravity_values\s+(\d+)$", q, re.IGNORECASE)
         if m:
             q_gravity_values(int(m.group(1)))
-            continue
-
-        m = re.match(
-            r"^trend_days\s+(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})(?:\s+commune\s+(.+))?$",
-            q,
-            re.IGNORECASE,
-        )
-        if m:
-            date_from = m.group(1)
-            date_to = m.group(2)
-            commune = m.group(3).strip() if m.group(3) else None
-            q_trend_days(date_from, date_to, commune)
             continue
 
         m = re.match(r"^columns\s+([a-zA-Z_][\w]*)\s+([a-zA-Z_][\w]*)$", q, re.IGNORECASE)
         if m:
             q_columns(m.group(1), m.group(2))
             continue
+
+        # Extended (only if flag is ON)
+        if extended:
+            m = re.match(r"^top_fatal_communes\s+(\d+)$", q, re.IGNORECASE)
+            if m:
+                q_top_fatal_communes(int(m.group(1)))
+                continue
+
+            m = re.match(r"^top_severe_communes\s+(\d+)$", q, re.IGNORECASE)
+            if m:
+                q_top_severe_communes(int(m.group(1)))
+                continue
+
+            m = re.match(r"^risk_score_communes\s+(\d+)$", q, re.IGNORECASE)
+            if m:
+                q_risk_score_communes(int(m.group(1)))
+                continue
+
+            m = re.match(r"^risk_score\s+commune\s+(.+)$", q, re.IGNORECASE)
+            if m:
+                q_risk_score_commune(m.group(1).strip())
+                continue
+
+            m = re.match(
+                r"^trend_days\s+(\d{4}-\d{2}-\d{2})\s+(\d{4}-\d{2}-\d{2})(?:\s+commune\s+(.+))?$",
+                q,
+                re.IGNORECASE,
+            )
+            if m:
+                date_from = m.group(1)
+                date_to = m.group(2)
+                commune = m.group(3).strip() if m.group(3) else None
+                q_trend_days(date_from, date_to, commune)
+                continue
 
         print("Unknown command. Type 'help' to see available commands.")

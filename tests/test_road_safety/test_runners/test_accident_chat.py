@@ -210,6 +210,9 @@ class TestRunChatRouting:
         called = {"top": 0, "stats": 0, "risk_commune": 0, "trend": 0, "cols": 0}
 
         monkeypatch.setattr(chat, "q_top_communes", lambda n: called.__setitem__("top", called["top"] + n))
+        monkeypatch.setattr(chat, "q_top_fatal_communes", lambda n: called.__setitem__("top_fatal", called["top_fatal"] + n))
+        monkeypatch.setattr(chat, "q_top_severe_communes", lambda n: called.__setitem__("top_severe", called["top_severe"] + n))
+        monkeypatch.setattr(chat, "q_risk_score_communes", lambda n: called.__setitem__("top_risk", called["top_risk"] + n))
         monkeypatch.setattr(chat, "q_stats_commune", lambda c: called.__setitem__("stats", called["stats"] + (1 if c == "Paris" else 0)))
         monkeypatch.setattr(chat, "q_risk_score_commune", lambda c: called.__setitem__("risk_commune", called["risk_commune"] + (1 if c == "Paris" else 0)))
         monkeypatch.setattr(chat, "q_trend_days", lambda d1, d2, c: called.__setitem__("trend", called["trend"] + (1 if (d1, d2, c) == ("2026-01-01", "2026-01-31", "Paris") else 0)))
@@ -217,6 +220,9 @@ class TestRunChatRouting:
 
         inputs = iter([
             "top_communes 10",
+            "top_fatal_communes 3",
+            "top_severe_communes 5",
+            "risk_score_communes 8",
             "stats commune Paris",
             "risk_score commune Paris",
             "trend_days 2026-01-01 2026-01-31 commune Paris",
@@ -228,6 +234,9 @@ class TestRunChatRouting:
         chat.run_chat()
 
         assert called["top"] == 10
+        assert called["top_fatal"] == 3
+        assert called["top_severe"] == 5
+        assert called["top_risk"] == 8
         assert called["stats"] == 1
         assert called["risk_commune"] == 1
         assert called["trend"] == 1
@@ -240,3 +249,84 @@ class TestRunChatRouting:
         chat.run_chat()
         out = capsys.readouterr().out
         assert "Unknown command" in out
+
+    def test_run_chat_extended_disabled(self, monkeypatch, capsys):
+        """Extended commands should be ignored when the flag is off."""
+        monkeypatch.delenv("RS_ENABLE_EXTENDED", raising=False)
+        inputs = iter(["top_fatal_communes 3", "risk_score_communes 5", "exit"])
+        monkeypatch.setattr(builtins, "input", lambda _: next(inputs))
+
+        chat.run_chat()
+        out = capsys.readouterr().out
+        # each unrecognized command triggers the unknown message
+        assert out.count("Unknown command") >= 2
+
+
+# ---------------------------------------------------------------------
+# Additional compute function tests for newer commands
+# ---------------------------------------------------------------------
+
+class TestComputeHourlyDistribution:
+    def test_compute_hourly_distribution_executes_expected_sql(self, monkeypatch):
+        conn = make_fake_conn([(0, 5), (1, 7)])
+        monkeypatch.setattr(chat, "establish_connection", lambda: conn)
+
+        rows = chat.compute_hourly_distribution()
+
+        assert rows == [(0, 5), (1, 7)]
+        sql, _ = conn.cursor_obj.executed[0]
+        assert "EXTRACT" in sql and "NULLIF" in sql and "heure_acc" in sql
+
+
+class TestComputeDayVsNightStats:
+    def test_compute_day_vs_night_stats_executes_expected_sql(self, monkeypatch):
+        conn = make_fake_conn([("DAY", 10, 2, 3)])
+        monkeypatch.setattr(chat, "establish_connection", lambda: conn)
+
+        rows = chat.compute_day_vs_night_stats()
+
+        assert rows == [("DAY", 10, 2, 3)]
+        sql, params = conn.cursor_obj.executed[0]
+        assert "luminosite" in sql
+        assert params == (chat.FATAL_LABEL, chat.FATAL_LABEL, chat.SEVERE_LABEL)
+
+
+class TestComputeMonthlyDistribution:
+    def test_compute_monthly_distribution_executes_expected_sql(self, monkeypatch):
+        conn = make_fake_conn([("2026-01", 20)])
+        monkeypatch.setattr(chat, "establish_connection", lambda: conn)
+
+        rows = chat.compute_monthly_distribution()
+
+        assert rows == [("2026-01", 20)]
+        sql, _ = conn.cursor_obj.executed[0]
+        assert "TO_CHAR" in sql and "YYYY-MM" in sql
+
+
+class TestComputeWeekendSeverityGap:
+    def test_compute_weekend_severity_gap_executes_expected_sql(self, monkeypatch):
+        conn = make_fake_conn([("WEEKEND", 30, 5, 10)])
+        monkeypatch.setattr(chat, "establish_connection", lambda: conn)
+
+        rows = chat.compute_weekend_severity_gap()
+
+        assert rows == [("WEEKEND", 30, 5, 10)]
+        sql, params = conn.cursor_obj.executed[0]
+        assert "EXTRACT(DOW" in sql or "WEEKEND" in sql
+        assert params == (chat.FATAL_LABEL, chat.FATAL_LABEL, chat.SEVERE_LABEL)
+
+
+class TestQWrapperAdditional:
+    def test_q_by_hour_prints_table(self, monkeypatch, capsys):
+        monkeypatch.setattr(chat, "compute_hourly_distribution", lambda: [(0, 1)])
+        chat.q_by_hour()
+        out = capsys.readouterr().out
+        assert "hour" in out
+        assert "0" in out
+
+    def test_q_day_vs_night_prints_table(self, monkeypatch, capsys):
+        monkeypatch.setattr(chat, "compute_day_vs_night_stats", lambda: [("DAY", 1, 0, 0)])
+        chat.q_day_vs_night()
+        out = capsys.readouterr().out
+        assert "luminosite" in out
+        assert "DAY" in out
