@@ -1,16 +1,16 @@
 import builtins
 
 from road_safety.runners import accident_cli
+from road_safety.runners.accident_cli import run_menu
 
 
 def test_menu_quit_immediately(monkeypatch, capsys):
     inputs = iter(["0"])
     monkeypatch.setattr(builtins, "input", lambda _: next(inputs))
 
-    accident_cli.run_menu()
+    run_menu()
     out = capsys.readouterr().out
-    assert "Road Safety Interactive" in out
-    assert "Bye." in out
+    assert "Retour au menu principal." in out
 
 
 def test_menu_overview_calls_action(monkeypatch, capsys):

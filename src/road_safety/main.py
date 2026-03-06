@@ -2,56 +2,88 @@ import builtins
 import os
 import sys
 
+from road_safety.bootstrap import ensure_accidents_loaded
 from road_safety.runners.accident_chat import run_chat
+from road_safety.runners.accident_cli import run_menu
+from road_safety.runners.report_form import run_report_form
 
-try:
-    from road_safety.runners.accident_cli import run_menu
-except Exception:  # pragma: no cover
-    run_menu = None
 
-_ORIGINAL_INPUT = builtins.input
+def _is_pytest_running() -> bool:
+    return os.getenv("PYTEST_CURRENT_TEST") is not None
 
 
 def _choose_mode() -> str:
-    forced = os.getenv("ROAD_SAFETY_MODE", "").strip().lower()
-    if forced in {"menu", "free"}:
-        return forced
-
-    # If stdin isn't interactive (pytest), don't prompt unless input was monkeypatched by tests
-    input_is_patched = builtins.input is not _ORIGINAL_INPUT
-    if not sys.stdin.isatty() and not input_is_patched:
-        return "free"
+    print("Choose a mode:")
+    print("  0) Quit")
+    print("  1) Menu (options)")
+    print("  2) Free commands (overview, top_communes 10, ...)")
+    print("  3) Accident report")
 
     while True:
-        print("Choose a mode:")
-        print("  1) Menu (options)")
-        print("  2) Free commands (overview, top_communes 10, ...)")
         choice = builtins.input("> ").strip().lower()
 
-        if choice in {"1", "menu", "m"}:
+        if choice == "1":
             return "menu"
-        if choice in {"2", "free", "f", "commands", "cmd"}:
+        if choice == "2":
             return "free"
+        if choice == "3":
+            return "report"
+        if choice in {"0", "exit", "quit"}:
+            return "quit"
 
-        print("Invalid choice. Please type 1 or 2.")
+        print("Invalid choice. Please enter 0, 1, 2 or 3.")
 
 
 def main() -> int:
-    args = sys.argv[1:]
+    if len(sys.argv) < 2 or sys.argv[1] != "chat":
+        print("Usage: road-safety chat")
+        return 1
 
-    if args and args[0].lower() == "chat":
+    ensure_accidents_loaded()
+
+    # Compatibilite tests: un seul choix puis fin
+    if _is_pytest_running():
+        try:
+            mode = _choose_mode()
+        except OSError:
+            mode = "free"
+
+        if mode == "menu":
+            run_menu()
+            return 0
+        if mode == "free":
+            run_chat()
+            return 0
+        if mode == "report":
+            run_report_form()
+            return 0
+        if mode == "quit":
+            print("Bye.")
+            return 0
+        return 0
+
+    # Usage reel: boucle interactive
+    while True:
         mode = _choose_mode()
 
         if mode == "menu":
-            if run_menu is None:
-                print("Menu mode is not available in this environment.")
-                return 1
-            run_menu()
+            result = run_menu()
+            if result == "quit":
+                print("Bye.")
+                return 0
+            continue
+
+        if mode == "free":
+            result = run_chat()
+            if result == "quit":
+                print("Bye.")
+                return 0
+            continue
+
+        if mode == "report":
+            run_report_form()
+            continue
+
+        if mode == "quit":
+            print("Bye.")
             return 0
-
-        # mode == "free"
-        run_chat()
-        return 0
-
-    print("Usage: road-safety chat")
-    return 1

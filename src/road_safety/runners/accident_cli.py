@@ -9,7 +9,7 @@ from . import accident_db as db
 HELP_TEXT = """\
 Road Safety interactive CLI (menu)
 
-0) Quit
+0) Retour menu principal
 1) Overview (severity breakdown)
 2) Fatal rate
 3) Collisions (top)
@@ -62,9 +62,9 @@ def action_columns_raw_accidents() -> None:
     db.print_table(["column_name", "data_type"], rows)
 
 
-def run_menu() -> None:
+def run_menu():
     print("=== Road Safety Interactive (Menu) ===")
-    print("Type 'help' to show commands. Choose an option number.\n")
+    print("Type 'help' to show commands. Choose an option number.")
 
     items = [
         MenuItem("1", "Overview (severity breakdown)", action_overview),
@@ -76,15 +76,17 @@ def run_menu() -> None:
     by_key = {it.key: it for it in items}
 
     while True:
-        print("Menu:")
-        print("  0) Quit")
+        print("\nMenu:")
+        print("  0) Retour menu principal")
         for it in items:
             print(f"  {it.key}) {it.label}")
-        choice = input("\n> ").strip().lower()
+        choice = input("> ").strip().lower()
 
-        if choice in {"0", "q", "quit", "exit"}:
-            print("Bye.")
-            return
+        if choice == "0":
+            print("Retour au menu principal.")
+            return "menu"
+        if choice in {"exit", "quit"}:
+            return "quit"
         if choice in {"help", "h", "?"}:
             print(HELP_TEXT)
             continue
