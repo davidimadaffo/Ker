@@ -487,7 +487,7 @@ def run_chat() -> None:
             continue
 
         # Flag for extended commands (MUST exist for tests)
-        extended = os.getenv("RS_ENABLE_EXTENDED", "0") == "1"
+        extended = os.getenv("RS_ENABLE_EXTENDED", "1") == "1"
 
         # Parameterized basics
         m = re.match(r"^top_communes\s+(\d+)$", q, re.IGNORECASE)

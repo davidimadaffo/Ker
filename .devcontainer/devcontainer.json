@@ -32,6 +32,15 @@
 			]
 		}
 	},
+	"containerEnv": {
+		"DB_HOST": "road-safety-postgres",
+		"DB_PORT": "5432",
+		"DB_USER": "user",
+		"DB_PASS": "password",
+		"DB_NAME": "accidents_db",
+		"RS_ENABLE_EXTENDED": "1",
+		"RS_AUTO_LOAD": "1"
+	},
 	"remoteUser": "vscode",
-	"postStartCommand": "rm -rf .venv && poetry install && poetry run pre-commit install"
+	"postStartCommand": "rm -rf .venv && poetry install && poetry run pre-commit install --allow-missing-config"
 }
