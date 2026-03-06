@@ -1,0 +1,46 @@
+{
+	"name": "${localWorkspaceFolderBasename}",
+	"dockerComposeFile": [
+		"docker-compose-devcontainer.yml",
+		"docker-compose-postgres.yml"
+	],
+	"service": "road-safety",
+	"workspaceFolder": "/workspace",
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"extensions.autoUpdate": "false",
+				"extensions.autoCheckUpdates": false,
+				"files.autoSave": "onFocusChange",
+				"python.defaultInterpreterPath": "/app/.venv/bin/python",
+				"python.linting.enabled": true,
+				"python.testing.unittestEnabled": false,
+				"python.testing.pytestEnabled": true,
+				"python.testing.pytestArgs": [
+					"tests"
+				]
+			},
+			"extensions": [
+				"ms-python.python",
+				"ms-python.debugpy",
+				"ms-python.vscode-pylance",
+				"ms-azuretools.vscode-docker",
+				"ms-vscode-remote.remote-containers",
+				"ms-vscode.makefile-tools",
+				"charliermarsh.ruff",
+				"njpwerner.autodocstring"
+			]
+		}
+	},
+	"containerEnv": {
+		"DB_HOST": "road-safety-postgres",
+		"DB_PORT": "5432",
+		"DB_USER": "user",
+		"DB_PASS": "password",
+		"DB_NAME": "accidents_db",
+		"RS_ENABLE_EXTENDED": "1",
+		"RS_AUTO_LOAD": "1"
+	},
+	"remoteUser": "vscode",
+	"postStartCommand": "rm -rf .venv && poetry install && poetry run pre-commit install --allow-missing-config"
+}

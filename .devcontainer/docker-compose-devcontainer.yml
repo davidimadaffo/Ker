@@ -1,0 +1,40 @@
+services:
+  road-safety:
+    container_name: road-safety
+  
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        PROJECT_PATH: "/workspace"
+
+    working_dir: /workspace
+
+    environment:
+      # Python application settings (matching src/road-safety/config/settings.py)
+      DB_HOST: road-safety-postgres
+      DB_PORT: 5888
+      DB_NAME: accidents_db
+      DB_USER: user
+      DB_PASS: password
+      
+      # These variables are used by the postgres image to init the db (optional here but good practice)
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: accidents_db
+
+    volumes:
+      - ..:/workspace:cached
+      # Optional: Uncomment if you need SSH keys inside the container
+      # - ~/.ssh:/home/vscode/.ssh:ro
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    depends_on:
+      - road-safety-postgres
+
+  road-safety-postgres:
+    extends:
+      file: docker-compose-postgres.yml
+      service: road-safety-postgres
