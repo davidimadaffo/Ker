@@ -207,7 +207,18 @@ class TestRunChatRouting:
         assert called["fatal"] == 1
 
     def test_run_chat_routes_parameterized_commands(self, monkeypatch):
-        called = {"top": 0, "stats": 0, "risk_commune": 0, "trend": 0, "cols": 0}
+        called = {
+            "top": 0, 
+            "top_fatal": 0,
+            "top_severe": 0,
+            "top_risk": 0,
+            "stats": 0,              
+            "risk_commune": 0,       
+            "trend": 0, 
+            "cols": 0,
+            }
+        
+        monkeypatch.setenv("RS_ENABLE_EXTENDED", "1") 
 
         monkeypatch.setattr(chat, "q_top_communes", lambda n: called.__setitem__("top", called["top"] + n))
         monkeypatch.setattr(chat, "q_top_fatal_communes", lambda n: called.__setitem__("top_fatal", called["top_fatal"] + n))

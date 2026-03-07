@@ -486,7 +486,7 @@ def run_chat() -> None:
             q_weekend_vs_week()
             continue
 
-        # Flag for extended commands (MUST exist for tests)
+        # Flag for extended commands
         extended = os.getenv("RS_ENABLE_EXTENDED", "0") == "1"
 
         # Parameterized basics
@@ -510,7 +510,7 @@ def run_chat() -> None:
             q_columns(m.group(1), m.group(2))
             continue
 
-        # Extended (only if flag is ON)
+        # Extended commands (only if RS_ENABLE_EXTENDED=1)
         if extended:
             m = re.match(r"^top_fatal_communes\s+(\d+)$", q, re.IGNORECASE)
             if m:
