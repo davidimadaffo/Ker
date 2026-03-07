@@ -440,7 +440,7 @@ def q_columns(schema: str, table: str) -> None:
 # ---------------------------------------------------------------------
 # REPL (tests expect this behaviour)
 # ---------------------------------------------------------------------
-def run_chat():
+def run_chat() -> None:
     print("=== Road Safety Interactive ===")
     print("Type 'help' for commands, 'exit' to quit.")
 
@@ -452,14 +452,15 @@ def run_chat():
         low = q.lower()
 
         if low in {"exit", "quit"}:
-            return "quit"
-
-        if low in {"0", "menu"}:
-            print("Retour au menu principal.")
-            return "menu"
+            print("Bye.")
+            return
 
         if low in {"help", "h", "?"}:
             print(HELP_TEXT)
+            continue
+
+        if low == "menu" and run_menu is not None:
+            run_menu()
             continue
 
         # Fixed commands
@@ -486,7 +487,7 @@ def run_chat():
             continue
 
         # Flag for extended commands (MUST exist for tests)
-        extended = os.getenv("RS_ENABLE_EXTENDED", "1") == "1"
+        extended = os.getenv("RS_ENABLE_EXTENDED", "0") == "1"
 
         # Parameterized basics
         m = re.match(r"^top_communes\s+(\d+)$", q, re.IGNORECASE)
