@@ -75,12 +75,66 @@ These packages are intentionally optional – the core CLI works without them.
 | `RS_ENABLE_EXTENDED` | `0` | Set to `1` to enable extended chat commands |
 | `ROAD_SAFETY_MODE` | *(ask)* | Force `menu` or `free` mode for `chat` |
 
-## Running tests
+## Running the tests
+
+The test suite does **not** require a live database — all database calls are
+replaced by in-memory fakes.
+
+### With `make` (recommended)
 
 ```bash
+# Run the full test suite (verbose output)
+make test
+
+# Run tests and stop on the first failure
+make test-fast
+
+# Run tests + generate an HTML coverage report in htmlcov/
+make test-cov
+```
+
+### With `poetry run`
+
+```bash
+# All tests
+poetry run pytest tests/
+
+# Verbose
+poetry run pytest tests/ -v
+
+# Stop on first failure
+poetry run pytest tests/ -x
+
+# With terminal coverage summary
+poetry run pytest tests/ --cov=src/road_safety --cov-report=term-missing
+
+# With HTML coverage report
+poetry run pytest tests/ --cov=src/road_safety --cov-report=html
+```
+
+### With plain `pytest` (inside the virtual environment)
+
+```bash
+# Activate the poetry virtual environment first
+source $(poetry env info --path)/bin/activate
+
+# Then run pytest directly
 pytest tests/
-# or with coverage
-pytest tests/ --cov=road_safety
+pytest tests/ -v
+pytest tests/ -x -q
+pytest tests/ --cov=src/road_safety --cov-report=term-missing
+```
+
+### Run a single test file
+
+```bash
+poetry run pytest tests/test_road_safety/test_runners/test_insights.py -v
+```
+
+### Run tests matching a keyword
+
+```bash
+poetry run pytest tests/ -k "commune" -v
 ```
 
 ## Project structure

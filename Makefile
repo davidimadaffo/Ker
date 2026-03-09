@@ -1,26 +1,95 @@
-ARG PYTHON_VERSION=3.14
-FROM mcr.microsoft.com/devcontainers/python:${PYTHON_VERSION}
+# ============================================================
+#  Road Safety - project helper targets
+#  Usage:  make <target>
+# ============================================================
 
-ARG PIP_VERSION=26.0
-ARG POETRY_VERSION=2.3.0
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
+.DEFAULT_GOAL := help
+POETRY        := poetry
+PYTEST        := $(POETRY) run pytest
+RUFF          := $(POETRY) run ruff
 
-ENV PYTHONUNBUFFERED=1
+SRC_DIR  := src
+TEST_DIR := tests
 
-WORKDIR /opt/app
+# ------------------------------------------------------------
+#  Help
+# ------------------------------------------------------------
+.PHONY: help
+help:
+	@echo ""
+	@echo "  Road Safety - available make targets"
+	@echo "  -------------------------------------"
+	@echo "  make install      Install all dependencies (dev included)"
+	@echo "  make test         Run the full test suite"
+	@echo "  make test-cov     Run tests with HTML coverage report"
+	@echo "  make test-fast    Run tests, stop on first failure"
+	@echo "  make lint         Check source code with ruff"
+	@echo "  make format       Auto-format source code with ruff"
+	@echo "  make chat         Launch the interactive CLI (chat mode)"
+	@echo "  make insights     Print road-safety insights"
+	@echo "  make map          Generate the accident map (accidents_map.html)"
+	@echo "  make dashboard    Launch the Streamlit dashboard"
+	@echo "  make clean        Remove generated artefacts"
+	@echo ""
 
-RUN rm -f /etc/apt/sources.list.d/yarn.list \
-    && apt-get update && apt-get -y install python3-dev \
-    && python -m pip install --user --upgrade pip==${PIP_VERSION} \
-    && python -m pip install --user pipx \
-    && python -m pipx install pytest-cov --include-deps \
-    && python -m pipx install poetry==${POETRY_VERSION} \
-    && apt-get autoremove --yes && apt-get clean && rm -rf /var/lib/{apt,dpkg,cache,log}/
+# ------------------------------------------------------------
+#  Dependencies
+# ------------------------------------------------------------
+.PHONY: install
+install:
+	$(POETRY) install
 
-COPY pyproject.toml poetry.lock* ./
+# ------------------------------------------------------------
+#  Tests
+# ------------------------------------------------------------
+.PHONY: test
+test:
+	$(PYTEST) $(TEST_DIR) -v
 
-RUN poetry install --no-cache --no-root
+.PHONY: test-cov
+test-cov:
+	$(PYTEST) $(TEST_DIR) --cov=$(SRC_DIR)/road_safety --cov-report=term-missing --cov-report=html
+	@echo ""
+	@echo "  HTML coverage report: htmlcov/index.html"
 
-COPY . .
+.PHONY: test-fast
+test-fast:
+	$(PYTEST) $(TEST_DIR) -x -q
 
-RUN poetry sync --no-cache
+# ------------------------------------------------------------
+#  Linting / formatting
+# ------------------------------------------------------------
+.PHONY: lint
+lint:
+	$(RUFF) check $(SRC_DIR) $(TEST_DIR)
+
+.PHONY: format
+format:
+	$(RUFF) format $(SRC_DIR) $(TEST_DIR)
+
+# ------------------------------------------------------------
+#  Application shortcuts
+# ------------------------------------------------------------
+.PHONY: chat
+chat:
+	$(POETRY) run road-safety chat
+
+.PHONY: insights
+insights:
+	$(POETRY) run road-safety insights
+
+.PHONY: map
+map:
+	$(POETRY) run road-safety map
+
+.PHONY: dashboard
+dashboard:
+	$(POETRY) run road-safety dashboard
+
+# ------------------------------------------------------------
+#  Cleanup
+# ------------------------------------------------------------
+.PHONY: clean
+clean:
+	rm -rf htmlcov .coverage .pytest_cache accidents_map.html
+	find . -type d -name __pycache__ -print0 | xargs -0 rm -rf 2>/dev/null || true
