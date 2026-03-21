@@ -1,0 +1,178 @@
+%%%%%%%%%%%%%%%%%
+\documentclass[10pt,a4paper,ragged2e,withhyper]{altacv}
+
+\geometry{left=1.25cm,right=1.25cm,top=1.5cm,bottom=1.5cm,columnsep=1.2cm}
+\usepackage{paracol}
+\usepackage{hyperref}
+
+% Fonts
+\iftutex
+  \setmainfont{Lato}
+\else
+  \usepackage[default]{lato}
+\fi
+
+% Couleurs professionnelles
+\definecolor{NavyBlue}{HTML}{003366}
+\definecolor{SlateGrey}{HTML}{2E2E2E}
+\definecolor{LightGrey}{HTML}{666666}
+\colorlet{heading}{NavyBlue}
+\colorlet{headingrule}{NavyBlue}
+\colorlet{accent}{NavyBlue}
+\colorlet{emphasis}{SlateGrey}
+\colorlet{body}{LightGrey}
+
+\renewcommand{\cvItemMarker}{{\small\textbullet}}
+
+\begin{document}
+
+\name{Hervé ADJAKOSSA}
+\tagline{Data Analyst}
+
+\personalinfo{%
+  \phone{+33 751 557 253}
+  \email{adjakossah@gmail.com}
+  \location{Montpellier, France}
+  \linkedin{linkedin.com/in/herve-adjakossa}
+}
+
+\makecvheader
+
+\AtBeginEnvironment{itemize}{\small}
+\columnratio{0.62}
+
+\begin{paracol}{2}
+
+%------------------------- Colonne gauche -------------------------
+
+\cvsection{Résumé de Profil}
+
+\begin{quote}
+Moins d'un an d'expertise en analyse QI et assistance clientèle sous haute pression :
+satisfaction client portée à 98\%, temps de traitement réduit de 20\% et innovation primée
+en workflows. Alliant rigueur analytique et empathie terrain, je transforme chaque
+interaction en solution durable, une donnée à la fois.
+\end{quote}
+
+\cvsection{Expériences Professionnelles}
+
+\cvevent{Avril 2024 -- Juillet 2024}{Stagiaire Analyste du Développement Local}{Mission Locale Auxerrois}{Auxerre, France}
+\begin{itemize}
+  \item Conception et lancement d'une lettre d'information semestrielle synthétisant les données socio-économiques de plus de 15\,000 jeunes, distribuée à plus de 200 parties prenantes (élus, employeurs, éducateurs).
+  \item Intégration de liens dynamiques avec les bases de données institutionnelles (INSEE, France Travail), automatisant 80\% des mises à jour et réduisant le traitement manuel de 25h par édition.
+  \item Collecte et analyse de données issues de plus de 8 sources (démographie, emploi, éducation) : 23\% des jeunes sans permis, 40\% des emplois dans des secteurs en tension.
+  \item Rédaction d'un guide de 15 pages adopté par 10+ membres, réduisant de 60\% le temps d'intégration des nouveaux employés.
+  \item Proposition de 5+ nouveaux indicateurs de données (alphabétisation numérique, santé mentale) conformément aux objectifs stratégiques 2024.
+\end{itemize}
+
+\divider
+
+\cvevent{Avril 2023 -- Juillet 2023}{Stagiaire Analyste de Données}{Knorr-Bremse}{Reims, France}
+\begin{itemize}
+  \item Automatisé les flux de collecte via Microsoft Forms : 10+ modèles réduisant la saisie manuelle de 30\% pour 200+ requêtes mensuelles.
+  \item Développé 15+ tableaux de bord interactifs Power BI, accélérant de 25\% les décisions de l'équipe achats.
+  \item Nettoyage de données avec Excel Power Query : résolution de 95\% des incohérences pour des audits fiables.
+  \item Modèle prédictif identifiant 3 partenariats sous-performants, économisant 20\,k€/an après renégociation.
+\end{itemize}
+
+\divider
+
+\cvevent{Août 2017 -- Août 2021}{Agent de Statistique}{Établissement 2HR}{Cotonou, Bénin}
+\begin{itemize}
+  \item Pilotage de l'analyse statistique pour 15+ projets de filets sociaux transnationaux : délais d'analyse réduits de 40\%.
+  \item Conception de modèles de suivi de performance pour des investissements de 40M+ USD.
+  \item Coordination des audits de données avec gouvernements et partenaires internationaux.
+\end{itemize}
+
+\cvsection{Projets Académiques \& Professionnels}
+
+\cvevent{2024 -- 2025}{Création d'un site web portfolio}{Projet personnel}{}
+\begin{itemize}
+  \item Développement d'un portfolio en ligne : \textbf{rveadjax}
+\end{itemize}
+
+\divider
+
+\cvevent{2023 -- 2024}{Data Mining -- ACP}{Saint-Etienne School of Economics}{}
+\begin{itemize}
+  \item Analyse des taux de réussite par lycées et par série dans la Loire (BAC 2001) via ACP.
+\end{itemize}
+
+\switchcolumn
+
+%------------------------- Colonne droite -------------------------
+
+\cvsection{Compétences Professionnelles}
+
+\cvsubsection{Analyse \& Visualisation}
+\cvtag{Power BI}
+\cvtag{Dashboards}
+\cvtag{Storytelling de données}
+\cvtag{Visualisation de données}
+\cvtag{Prévisions de tendances}
+
+\divider
+
+\cvsubsection{Data \& Informatique}
+\cvtag{Python (Pandas, NumPy, Matplotlib)}
+\cvtag{R}
+\cvtag{SQL}
+\cvtag{Excel (TCD, Power Query, VLOOKUP)}
+\cvtag{VBA / SAS / Statistica}
+\cvtag{HTML5 \& CSS3}
+\cvtag{JavaScript}
+\cvtag{Microsoft Forms}
+\cvtag{Word}
+
+\divider
+
+\cvsubsection{Management \& Stratégie}
+\cvtag{Gouvernance des données}
+\cvtag{Méthodologies QI}
+\cvtag{Amélioration des processus}
+\cvtag{Leadership d'équipe}
+\cvtag{Gestion de projet}
+\cvtag{Collaboration interfonctionnelle}
+\cvtag{Influence stratégique}
+\cvtag{Analyse inclusive}
+\cvtag{Compétences interculturelles}
+
+\cvsection{Qualités}
+\cvtag{Rigueur}
+\cvtag{Empathie}
+\cvtag{Esprit analytique}
+\cvtag{Adaptabilité}
+\cvtag{Initiative}
+\cvtag{Enthousiasme}
+\cvtag{Organisation}
+\cvtag{Débrouillardise}
+
+\cvsection{Langues}
+Français \textbf{(courant)} \\[0.3em]
+Anglais \textbf{(professionnel)}
+
+\cvsection{Formation}
+
+\cvevent{2025 -- 2026}{Master 1 Statistique pour l'Évaluation et la Prévision}{Université de Reims}{France}
+\divider
+\cvevent{2024 -- 2025}{DU : Connaissances Fondamentales en Informatique}{Université de Montpellier}{France}
+\divider
+\cvevent{2022 -- 2023}{Licence en Modélisation et Sciences des Données}{Saint-Etienne School of Economics}{France}
+\divider
+\cvevent{2012 -- 2013}{Licence Pro. Statistique et Économétrie}{Université d'Abomey-Calavi}{Bénin}
+
+\cvsection{Certifications}
+\begin{itemize}
+  \item SAS Programming for R Users -- LinkedIn Learning
+  \item L'essentiel d'Azure -- LinkedIn Learning
+  \item Python pour la data science -- LinkedIn Learning
+  \item Découvrir SAS Enterprise Guide -- LinkedIn Learning
+  \item R : Les statistiques paramétriques -- LinkedIn Learning
+  \item L'essentiel de Power BI -- LinkedIn Learning
+\end{itemize}
+
+\cvsection{Bénévolat}
+\cvevent{2019 -- 2020}{Organisateur d'activités}{Eckankar}{Cotonou, Bénin}
+
+\end{paracol}
+\end{document}
