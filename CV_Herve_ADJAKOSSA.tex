@@ -1,0 +1,162 @@
+\documentclass[9pt,a4paper,ragged2e,withhyper]{altacv}
+
+% Marges ultra-compactes
+\geometry{left=1.0cm,right=1.0cm,top=0.9cm,bottom=0.8cm,columnsep=0.9cm}
+\usepackage{paracol}
+\usepackage{hyperref}
+
+% Réduction globale des espacements
+\setlength{\parskip}{0pt}
+\setlength{\medskipamount}{3pt}
+\setlength{\bigskipamount}{5pt}
+\setlength{\smallskipamount}{2pt}
+
+% Fonts
+\iftutex
+  \setmainfont{Lato}
+\else
+  \usepackage[default]{lato}
+\fi
+
+% Couleurs professionnelles
+\definecolor{NavyBlue}{HTML}{003366}
+\definecolor{SlateGrey}{HTML}{2E2E2E}
+\definecolor{LightGrey}{HTML}{666666}
+\colorlet{heading}{NavyBlue}
+\colorlet{headingrule}{NavyBlue}
+\colorlet{accent}{NavyBlue}
+\colorlet{emphasis}{SlateGrey}
+\colorlet{body}{LightGrey}
+
+% Réduction espacement des listes
+\setlist{leftmargin=1em,labelsep=0.3em,nosep,itemsep=0pt,topsep=0pt,parsep=0pt,after=\vspace{1pt}}
+\renewcommand{\cvItemMarker}{{\tiny\textbullet}}
+
+% Réduction de la section heading
+\renewcommand{\cvsectionfont}{\normalsize\bfseries}
+
+\begin{document}
+
+\name{Hervé ADJAKOSSA}
+\tagline{Data Analyst \textnormal{·} Analyse de données · Power BI · Python · SQL}
+
+\personalinfo{%
+  \phone{+33 751 557 253}%
+  \email{adjakossah@gmail.com}%
+  \location{Montpellier, France}%
+  \linkedin{linkedin.com/in/herve-adjakossa}%
+  \homepage{rveadjax}%
+}
+
+\makecvheader
+\vspace{-6pt}
+
+\AtBeginEnvironment{itemize}{\scriptsize}
+\columnratio{0.61}
+
+\begin{paracol}{2}
+
+%------------------------- Colonne gauche -------------------------
+
+{\small\color{emphasis}\itshape
+Analyste données avec expérience en BI, statistiques et gestion de projets data. Satisfaction client portée à \textbf{98\%}, temps de traitement réduit de \textbf{20\%}, dashboards déployés sur 200+ parties prenantes. Alliant rigueur analytique et sens du terrain pour générer de la valeur mesurable.}
+
+\vspace{2pt}
+
+\cvsection{Expériences Professionnelles}
+
+\cvevent{04/2024 -- 07/2024}{Analyste Développement Local (Stage)}{Mission Locale Auxerrois}{Auxerre}
+\vspace{-4pt}
+\begin{itemize}
+  \item Création d'une newsletter semestrielle (15\,000+ jeunes, 200+ parties prenantes) avec \textbf{80\%} d'automatisation des données (INSEE, France Travail) --- traitement réduit de \textbf{25h/édition}.
+  \item Analyse de 8+ sources : identification que 23\% des jeunes sans permis impactent l'emploi ; 40\% des offres en secteurs en tension.
+  \item Guide de production (15 pages) adopté par 10+ agents --- intégration accélérée de \textbf{60\%}.
+\end{itemize}
+
+\vspace{-2pt}\divider\vspace{-2pt}
+
+\cvevent{04/2023 -- 07/2023}{Analyste de Données (Stage)}{Knorr-Bremse}{Reims}
+\vspace{-4pt}
+\begin{itemize}
+  \item \textbf{15+ dashboards Power BI} : accélération des décisions achats de \textbf{25\%} ; 200+ requêtes/mois traitées.
+  \item Automatisation via Microsoft Forms : saisie manuelle réduite de \textbf{30\%} sur 10+ modèles.
+  \item Data cleaning Power Query : \textbf{95\%} d'incohérences résolues ; modèle prédictif $\rightarrow$ \textbf{économie 20k€/an}.
+\end{itemize}
+
+\vspace{-2pt}\divider\vspace{-2pt}
+
+\cvevent{08/2017 -- 08/2021}{Agent de Statistique}{Établissement 2HR}{Cotonou, Bénin}
+\vspace{-4pt}
+\begin{itemize}
+  \item Analyse statistique de \textbf{15+ projets} transnationaux (40M+ USD) --- délais réduits de \textbf{40\%}.
+  \item Modèles de suivi de performance et audits avec gouvernements et partenaires internationaux.
+\end{itemize}
+
+\cvsection{Formation}
+
+\vspace{-2pt}
+{\scriptsize
+\textbf{\color{accent}Master 1 Statistique --- Évaluation \& Prévision} \hfill \textit{2025--2026}\\
+\color{body}Université de Reims, France\\[2pt]
+\textbf{\color{accent}DU Informatique Fondamentale} \hfill \textit{2024--2025}\\
+\color{body}Université de Montpellier, France\\[2pt]
+\textbf{\color{accent}Licence Modélisation \& Sciences des Données} \hfill \textit{2022--2023}\\
+\color{body}Saint-Etienne School of Economics, France\\[2pt]
+\textbf{\color{accent}Licence Pro. Statistique \& Économétrie} \hfill \textit{2012--2013}\\
+\color{body}Université d'Abomey-Calavi, Bénin
+}
+
+\cvsection{Projets}
+{\scriptsize
+\textbf{\color{accent}Portfolio web \emph{rveadjax}} \hfill \textit{2024--2025} --- HTML/CSS/JS\\[2pt]
+\textbf{\color{accent}Data Mining ACP --- BAC Loire 2001} \hfill \textit{2023--2024} --- R, Statistica
+}
+
+\switchcolumn
+
+%------------------------- Colonne droite -------------------------
+
+\cvsection{Compétences Clés}
+
+\cvsubsection{Visualisation \& BI}
+\cvtag{Power BI}\cvtag{Dashboards}\cvtag{Storytelling}\cvtag{Reporting}
+
+\vspace{2pt}
+\cvsubsection{Langages \& Outils Data}
+\cvtag{Python}\cvtag{Pandas}\cvtag{NumPy}\cvtag{Matplotlib}\\[2pt]
+\cvtag{R}\cvtag{SQL}\cvtag{SAS}\cvtag{Statistica}\\[2pt]
+\cvtag{Excel}\cvtag{Power Query}\cvtag{VBA}\cvtag{Microsoft Forms}
+
+\vspace{2pt}
+\cvsubsection{Dev \& Autres}
+\cvtag{HTML5 \& CSS3}\cvtag{JavaScript}\cvtag{Word}
+
+\vspace{2pt}
+\cvsubsection{Management \& Méthodes}
+\cvtag{Gouvernance des données}\cvtag{ETL}\\[2pt]
+\cvtag{Amélioration des processus}\cvtag{Gestion de projet}\\[2pt]
+\cvtag{Méthodologies QI}\cvtag{Analyse inclusive}
+
+\cvsection{Certifications}
+{\scriptsize
+\textbf{\color{accent}SAS Programming for R Users} · LinkedIn Learning\\[1pt]
+\textbf{\color{accent}Python pour la data science} · LinkedIn Learning\\[1pt]
+\textbf{\color{accent}L'essentiel de Power BI} · LinkedIn Learning\\[1pt]
+\textbf{\color{accent}R : Statistiques paramétriques} · LinkedIn Learning\\[1pt]
+\textbf{\color{accent}L'essentiel d'Azure} · LinkedIn Learning\\[1pt]
+\textbf{\color{accent}SAS Enterprise Guide} · LinkedIn Learning
+}
+
+\cvsection{Langues}
+{\small Français \textbf{(courant)} · Anglais \textbf{(professionnel)}}
+
+\cvsection{Qualités}
+\cvtag{Rigueur}\cvtag{Esprit analytique}\\[2pt]
+\cvtag{Empathie}\cvtag{Adaptabilité}\\[2pt]
+\cvtag{Initiative}\cvtag{Organisation}
+
+\cvsection{Bénévolat}
+{\scriptsize\textbf{\color{accent}Organisateur d'activités} · Eckankar, Cotonou \hfill \textit{2019--2020}}
+
+\end{paracol}
+\end{document}
