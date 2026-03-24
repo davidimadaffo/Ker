@@ -3,6 +3,9 @@ import os
 import sys
 
 from road_safety.runners.accident_chat import run_chat
+from road_safety.runners.insights import run_insights
+from road_safety.runners.map_generator import run_map
+from road_safety.runners.dashboard import run_dashboard
 
 try:
     from road_safety.runners.accident_cli import run_menu
@@ -39,7 +42,14 @@ def _choose_mode() -> str:
 def main() -> int:
     args = sys.argv[1:]
 
-    if args and args[0].lower() == "chat":
+    if not args:
+        print("Usage: road-safety <command>")
+        print("Commands: chat, insights, map, dashboard")
+        return 1
+
+    command = args[0].lower()
+
+    if command == "chat":
         mode = _choose_mode()
 
         if mode == "menu":
@@ -53,5 +63,21 @@ def main() -> int:
         run_chat()
         return 0
 
-    print("Usage: road-safety chat")
+    if command == "insights":
+        run_insights()
+        return 0
+
+    if command == "map":
+        output_path = args[1] if len(args) > 1 else "accidents_map.html"
+        limit = int(args[2]) if len(args) > 2 else 2000
+        run_map(output_path=output_path, limit=limit)
+        return 0
+
+    if command == "dashboard":
+        run_dashboard()
+        return 0
+
+    print(f"Unknown command: {command}")
+    print("Usage: road-safety <command>")
+    print("Commands: chat, insights, map, dashboard")
     return 1
