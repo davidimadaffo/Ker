@@ -13,6 +13,7 @@ priority = "primary"
 
 [tool.poetry.dependencies]
 python = ">=3.14,<3.15"
+fpdf2 = "2.8.2"
 numpy = "2.4.1"
 pandas = "3.0.0"
 pandera = "0.28.1"

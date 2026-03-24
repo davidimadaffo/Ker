@@ -3,6 +3,7 @@ import os
 import sys
 
 from road_safety.runners.accident_chat import run_chat
+from road_safety.runners.chanvre_report import run_chanvre_report
 
 try:
     from road_safety.runners.accident_cli import run_menu
@@ -39,6 +40,11 @@ def _choose_mode() -> str:
 def main() -> int:
     args = sys.argv[1:]
 
+    if args and args[0].lower() == "chanvre-report":
+        output_path = args[1] if len(args) > 1 else None
+        run_chanvre_report(output_path)
+        return 0
+
     if args and args[0].lower() == "chat":
         mode = _choose_mode()
 
@@ -53,5 +59,5 @@ def main() -> int:
         run_chat()
         return 0
 
-    print("Usage: road-safety chat")
+    print("Usage: road-safety chat | road-safety chanvre-report [output.pdf]")
     return 1
