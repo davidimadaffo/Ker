@@ -177,9 +177,9 @@ def build_demographie_dataframe() -> pd.DataFrame:
         A DataFrame with 26 rows (one per year) and all demographic,
         socioeconomic, health, fertility, policy and qualitative variables.
     """
-    naissances = np.array(_NAISSANCES_MILLIERS) * 1_000
-    deces = np.array(_DECES_MILLIERS) * 1_000
-    population = np.array(_POPULATION_MILLIONS) * 1_000_000
+    naissances = np.round(np.array(_NAISSANCES_MILLIERS) * 1_000).astype(int)
+    deces = np.round(np.array(_DECES_MILLIERS) * 1_000).astype(int)
+    population = np.round(np.array(_POPULATION_MILLIONS) * 1_000_000).astype(int)
 
     solde_naturel = naissances - deces
     taux_natalite = (naissances / population) * 1_000
@@ -189,13 +189,13 @@ def build_demographie_dataframe() -> pd.DataFrame:
         # Année
         "annee": _YEARS,
         # --- Variable cible (Y) ---
-        "naissances": naissances.astype(int).tolist(),
-        "deces": deces.astype(int).tolist(),
-        "solde_naturel": solde_naturel.astype(int).tolist(),
+        "naissances": naissances.tolist(),
+        "deces": deces.tolist(),
+        "solde_naturel": solde_naturel.tolist(),
         "taux_natalite_pour_1000": np.round(taux_natalite, 2).tolist(),
         "taux_mortalite_pour_1000": np.round(taux_mortalite, 2).tolist(),
         # --- Démographiques ---
-        "population": population.astype(int).tolist(),
+        "population": population.tolist(),
         "part_population_65_plus_pct": _PART_65_PLUS_PCT,
         "part_population_15_49_pct": _PART_15_49_PCT,
         # --- Socio-économiques ---
