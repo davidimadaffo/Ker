@@ -62,6 +62,10 @@ class TestBuildDemographieDataframe:
             "part_population_15_49_pct",
             "taux_chomage_pct",
             "taux_emploi_feminin_pct",
+            "taux_activite_femmes_25_49_pct",
+            "part_temps_partiel_femmes_pct",
+            "naissances_rang_3_plus_pct",
+            "taux_pauvrete_enfants_pct",
         ]:
             assert (df[col] >= 0).all(), f"{col} has negative values"
             assert (df[col] <= 100).all(), f"{col} exceeds 100%"
@@ -78,8 +82,34 @@ class TestBuildDemographieDataframe:
             "crise_sanitaire",
             "reforme_retraites",
             "plan_natalite",
+            "alloc_sous_conditions_ressources",
+            "reforme_alloc_familiales",
         ]:
             assert (df[col].str.len() > 0).all(), f"{col} has empty strings"
+
+    def test_allocations_familiales_positive(self):
+        df = build_demographie_dataframe()
+        assert (df["allocations_familiales_mrd_eur"] > 0).all()
+
+    def test_montant_alloc_base_positive(self):
+        df = build_demographie_dataframe()
+        assert (df["montant_alloc_base_2_enfants_eur"] > 0).all()
+
+    def test_ratio_prestations_positive(self):
+        df = build_demographie_dataframe()
+        assert (df["ratio_prestations_familiales_revenu_median_pct"] > 0).all()
+
+    def test_years_start_at_1992(self):
+        df = build_demographie_dataframe()
+        assert df["annee"].iloc[0] == 1992
+
+    def test_means_testing_transition(self):
+        """Verify that means-testing was introduced in 1998."""
+        df = build_demographie_dataframe()
+        pre_1998 = df[df["annee"] < 1998]["alloc_sous_conditions_ressources"]
+        assert (pre_1998 == "Non").all()
+        row_1998 = df[df["annee"] == 1998]["alloc_sous_conditions_ressources"].iloc[0]
+        assert row_1998 != "Non"
 
 
 class TestSaveAndLoadDemographieCsv:

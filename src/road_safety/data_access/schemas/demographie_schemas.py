@@ -39,12 +39,22 @@ class DemographieSchema:
     depenses_politique_familiale_pct_pib: float
     places_garde_pour_1000_enfants: int
     prix_moyen_logement_eur_m2: int
+    # --- Allocations familiales et conditions de ressources ---
+    allocations_familiales_mrd_eur: float
+    montant_alloc_base_2_enfants_eur: int
+    taux_activite_femmes_25_49_pct: float
+    part_temps_partiel_femmes_pct: float
+    naissances_rang_3_plus_pct: float
+    ratio_prestations_familiales_revenu_median_pct: float
+    taux_pauvrete_enfants_pct: float
     # --- Qualitatives ---
     politique_conge_parental: str
     acces_pma: str
     crise_sanitaire: str
     reforme_retraites: str
     plan_natalite: str
+    alloc_sous_conditions_ressources: str
+    reforme_alloc_familiales: str
 
 
 # Expected columns in the CSV
@@ -72,12 +82,21 @@ EXPECTED_COLUMNS = [
     "depenses_politique_familiale_pct_pib",
     "places_garde_pour_1000_enfants",
     "prix_moyen_logement_eur_m2",
+    "allocations_familiales_mrd_eur",
+    "montant_alloc_base_2_enfants_eur",
+    "taux_activite_femmes_25_49_pct",
+    "part_temps_partiel_femmes_pct",
+    "naissances_rang_3_plus_pct",
+    "ratio_prestations_familiales_revenu_median_pct",
+    "taux_pauvrete_enfants_pct",
     "politique_conge_parental",
     "acces_pma",
     "crise_sanitaire",
     "reforme_retraites",
     "plan_natalite",
+    "alloc_sous_conditions_ressources",
+    "reforme_alloc_familiales",
 ]
 
-YEAR_RANGE = (2000, 2025)
-NUM_ROWS = 26  # one per year
+YEAR_RANGE = (1992, 2025)
+NUM_ROWS = 34  # one per year
